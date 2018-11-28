@@ -1,231 +1,175 @@
-//
-function batch_del_old_comments() {
-  var api_path = api.comments_user_f(credential.username)
-  var reads = rddt_http(api_path)
+redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, secret.creds_voters, secret.folder_id, secret.flair_mapping)
+redditlib.check_init()
+
+
+updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header)
+updaterlib.check_init()
+
+
+mlablib.init_project(secret.mlab)
+mlablib.check_init()
+
+
+function batch_month() {
+  console.info("batch_month()")
+  updaterlib.batch_update_doc_force()
+  redditlib.batch_set_arg_queue()
+}
+
+
+function batch_day() {
+  console.info("batch_day")
+  updaterlib.batch_update_doc()
+  redditlib.batch_del_old_comments()
+  redditlib.batch_save_wikis_gd()
+}
+
+
+function batch_hours2() {
+//  console.info("batch_hours2()")
+  redditlib.batch_add_goodposts()
+}
+
+// 15m
+function batch_comments_snapshot() {
+  var new_comments = redditlib.get_comments(20)
+  var new_c_names = redditlib.get_names_fr_obj(new_comments)
   
-  if(reads.length > 0) {
-    console.log("batch_del_old_comments() in")
-  }
-  
-  for(var i=0;i<reads.length;i++) {
-    var data = reads[i].data
-    var likes = data.likes // true, false, null
-    var age = get_age(data.created_utc)
-    var name = data.name
-    var body = data.body.slice(0, 15)
+  for(var i=0; i<new_c_names.length; i++) {
+    var count = mlablib.get_matched_count("snapshot", new_c_names[i])
     
-    var msg = Utilities.formatString("%s, %s, %s, %s", name, age, likes, body)
+    if(count > 0) {
+      continue  
+    }
     
-    if((age >= MIN_AGE) && (age < MAX_AGE) && (likes == null)) {
-      save_json_gd(name)
-            
-      var r = del_thing(name)      
-      if(r) {
-        console.info("deleted:%s",msg)            
-      } else {
-        console.info("not deleted:%s",msg)            
-      }
-      continue
-      
+    var parent_full = redditlib.get_parent_full(new_c_names[i])
+    var title = redditlib.get_t3_data(parent_full).title
+    
+    var doc = {
+      name:new_c_names[i],
+      data:parent_full
+    }
+    
+    var r = mlablib.insert_documents("snapshot", doc) 
+    
+    if(r) {
+      console.log("new snapshot inserted:%s:%s:%s", new_c_names[i], title, parent_full)
     } else {
-      console.info("age invalid:%s",msg)
-    }
-    
-    // don't handle old comments
-    if(age > MAX_AGE) {
-      break
-    }
-  }
-  
-  if(reads.length > 0) {
-    console.log("batch_del_old_comments() out")
-  }
-  
-  return 
-}
-
-//
-function batch_save_wikis_gd(wikis) {
-  var wikis = get_wikis(FLAIR_MAPPING)
-
-  if(wikis == undefined) {
-    var wikis = get_wikis(FLAIR_MAPPING)
-  }
-  
-  if(wikis.length > 0) {
-    console.log("batch_save_wikis_gd() in")
-  }
-
-  for(var i=0; i<wikis.length; i++) {
-    var page = get_page(wikis[i])
-    var ids = get_ids_fr_page(page)
-    var ids_gd = get_ids_fr_gd(GD_FOLDER_ID)
-    
-    if(ids.length < 1) {
-      continue  
-    }
-
-//    console.info("%s:%s",wikis[i],ids)
-    for(var i2 in ids) {
-      if(ids_gd.indexOf(ids[i2]) > -1) {
-        continue  
-      }
-      var name = get_name(ids[i2])
-      var r = save_json_gd(name)
-    }
-  }
-  if(wikis.length > 0) {
-    console.log("batch_save_wikis_gd() out")
+      console.log("snapshot not inserted:%s:%s:%s", new_c_names[i], title, parent_full) 
+    }   
   }
 }
 
-// XXXXXXXXXx
-function batch_clean_voted() {
-  var objs = get_upvoted()
 
-  for(var i=0; i<objs.length; i++) {
-    var obj = objs[i]
-    console.info(obj)
-    
-    // six months
-    if(obj.age > ARCHIVED_AGE) {
-      break  
-    }
-    var name = obj.name
-    clean_vote(name)
+function doGet(e) {
+  var name = e.parameter.name
+  var dir = e.parameter.dir
+  var data = redditlib.get_parent(name)
+  var age = redditlib.get_age(data.created_utc)
+  var title = data.title.slice(0,15)
+  var logged_user = e.parameter.logged_user
+
+  var obj = {
+    "name":name,
+    "dir":dir,
+    "age":age,
+    "title":title,
+    "voter":redditlib.voter_obj.voter,
+    "logged_user":logged_user    
   }
-}
-
-//
-function batch_add_goodposts() {
-  var saveds = get_saved()
   
-  if(saveds.length > 0) {
-    console.log("batch_add_goodposts() in")
-  }
-  for(var i=0;i<saveds.length;i++) {
-    var s = saveds[i]
+  if(obj["logged_user"] == creds_main.username) {
+    redditlib.set_arg_queue(obj)
+    console.log("received:%s", obj)
     
-    s.catalog = get_wikicatalog(s.flair)
+    var ret_obj = obj
+  } else {
+    var msg = "not from main user, skipped:" + JSON.stringify(obj)
+    console.log(msg)
     
-    var c = check_values(s.catalog, s.title, s.flair, s.name)
-    if(c == false) {
-      continue  
-    }      
-    
-    var msg = Utilities.formatString("%s, %s, %s, %s", s.title, s.name, s.flair, s.catalog)
-    
-    var r = add_goodpost(s)
-    
-    if(r == code.ADDPOST_ADDED) {
-      console.info("added:%s",msg)
-      up_vote(s)
-      
-      var o = to_voter_obj(s, "1")
-      set_arg_queue(o)
-    } else if(r == code.ADDPOST_NOT) {
-      console.info("not added:%s",msg)
-      clean_vote(s)
-      
-      var o = to_voter_obj(s, "0")
-      set_arg_queue(o)
-    } else if(r == code.ADDPOST_ALREADY) {
-      console.info("already added:%s",msg)
-      up_vote(s)
-      
-      var o = to_voter_obj(s, "1")
-      set_arg_queue(o)
-    } else if(r == code.ADDPOST_EMPTY) {
-      console.info("empty page") 
+    var ret_obj = {
+      "result":msg
     }
   }
   
-  if(saveds.length > 0) {
-    console.log("batch_add_goodposts() out")
-  } 
+  var json_text = ContentService.createTextOutput(JSON.stringify(ret_obj)).setMimeType(ContentService.MimeType.JSON); 
+  return json_text
 }
 
 
+function clean_arg() {
+  redditlib.clean_argument("VOTER_QUEUE")
+  redditlib.clean_argument("ARG_QUEUE")
+  dump_arg()
+}
+
+
+function dump_arg() {
+  Logger.log(redditlib.dump_argument("VOTER_QUEUE"))
+  Logger.log(redditlib.dump_argument("ARG_QUEUE"))
+}
+
+// 30m
 function batch_voter_vote() {
-  var obj = get_voter_queue()
-  
-  if(obj == undefined) { 
-//    console.log("get_voter_queue() is empty")
-    return 
-  }
-  
-  if(obj.age > ARCHIVED_AGE) {
-    console.log("over aged:%s:%s:%s:%s:%d", obj.title, obj.dir, obj.name, obj.voter, obj.age)
-    return
-  }
-  
-  var like = get_voter_likes(obj.name, obj.voter)
-  var dir = get_dir_fr_likes(like)
-  
-  if(dir == obj.dir) {
-    console.log("skipped vote:%s:%s:%s:%s:%d", obj.title, obj.dir, obj.name, obj.voter, obj.age)    
-    return  
-  }
-  
-  var creds = get_voter_creds(obj.voter)
-  
-  var payload = {
-    "id":obj.name,
-    "dir":obj.dir
-  }
-  
-  console.log("voter:%s:%s:%s:%s:%d", obj.title, obj.dir, obj.name, obj.voter, obj.age)    
-  // push voter back to voter queue while http call fails?
-  var api_path = api.vote 
-  var json = rddt_http(api_path, payload, undefined, creds)
-  
-  return
+  redditlib.batch_voter_vote()  
 }
 
-// 1 day = 1440 minutes / 5 minutes = 288 times
-// 30(up+down) * 6 users * 5 minutes = 900 minutes
-function batch_set_arg_queue() {
-  var ups = get_upvoted(20)
-  var downs = get_downvoted(10)
-  var updowns = ups.concat(downs)
+// daily
+function batch_get_interesting_posts() {
+  var objs = []
   
-  for(var i=0; i<updowns.length; i++) {
-    voter_obj.age = updowns[i].age
-   
-    if(voter_obj.age > ARCHIVED_AGE) {
-      continue  
-    }
-    
-    voter_obj.name = updowns[i].name
-    
-    if(i < ups.length) { 
-      voter_obj.dir = "1"
-    } else {
-      voter_obj.dir = "-1"
-    }
-      
-    voter_obj.title = updowns[i].title.slice(0,15)    
-    set_arg_queue(voter_obj)
-  }
-}
-
-// untested
-function batch_del_message_fr_voter() {
-  var voters = voter_obj.voter
-  
-  for(var i in voters) {
-    del_message_fr_voter(voters[i]) 
-  }
-}
-
-// 
-function batch_targeted_posts() {
-  var comments = get_comments(25)
-  
+  var comments = redditlib.get_comments(50)
+ 
   for(var i in comments) {
     var data = comments[i].data
+    var title = data.title.toLowerCase()
+    var selftext = data.selftext.toLowerCase()
+    
+    var keywords = []
+    
+    for(var i2 in secret.interesting_keywords) {
+      var keyword = secret.interesting_keywords[i2]  
+      var name = data.name
+      var id = data.id
+      
+      if(selftext.indexOf(keyword) > -1) {
+        keywords.push(keyword)        
+      }      
+      
+      if(title.indexOf(keyword) > -1) {
+        keywords.push(keyword)        
+      }            
+    }  
+    
+    
+    if(keywords.length > 0) {
+      keywords = httplib.get_unique(keywords)
+      
+      var obj = {
+        "name":name,
+        "id":id,
+        "title":title.slice(0,20),
+        "keywords":keywords
+      }
+      
+      objs.push(obj)
+    }
+  }
+
+  var mail_title = Utilities.formatString("[reddit] %d", objs.length)
+  var mail_lines = ""
+  var link_prefix = "https://redd.it/"
+  
+  for(var i in objs) {
+    var obj = objs[i]
+    var link = link_prefix + obj.id
+    var index = parseInt(i) + 1
+    mail_lines = mail_lines + Utilities.formatString("[%02d]%s ,%s ,%s\n\n", index, obj.keywords, link, obj.title)
   }
   
-  return comments
-  
+  if(objs.length > 0) {
+    var mail = Session.getActiveUser().getEmail()
+    
+    MailApp.sendEmail(mail, mail_title, mail_lines)
+  }
 }
