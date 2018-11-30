@@ -62,7 +62,7 @@ function batch_comments_snapshot() {
   }
 }
 
-
+// need to deploy new version once doget related function updated
 function doGet(e) {
   var name = e.parameter.name
   var dir = e.parameter.dir
