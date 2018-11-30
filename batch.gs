@@ -2,8 +2,10 @@ redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, se
 redditlib.check_init()
 
 
+
 updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header)
 updaterlib.check_init()
+
 
 
 mlablib.init_project(secret.mlab)
@@ -78,7 +80,7 @@ function doGet(e) {
     "logged_user":logged_user    
   }
   
-  if(obj["logged_user"] == creds_main.username) {
+  if(obj["logged_user"] == secret.creds_main.username) {
     redditlib.set_arg_queue(obj)
     console.log("received:%s", obj)
     
