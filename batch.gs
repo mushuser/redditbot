@@ -1,11 +1,9 @@
-redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, secret.creds_voters, secret.folder_id, secret.flair_mapping)
+redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, secret.creds_voters, secret.creds_atwikibot, secret.folder_id, secret.flair_mapping)
 redditlib.check_init()
 
-
-
-updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header)
+// bot x 2, guide script
+updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header, secret.creds_atwikibot)
 updaterlib.check_init()
-
 
 
 mlablib.init_project(secret.mlab)
