@@ -114,17 +114,26 @@ function batch_voter_vote() {
   redditlib.batch_voter_vote()  
 }
 
-// daily
+// daily, trigged at mid-1am
 function batch_get_interesting_posts() {
   var objs = []
   
   var comments = redditlib.get_comments(50)
- 
+   
+  var yesterday = new Date()
+  yesterday.setDate(yesterday.getDate()-1)
+  
   for(var i in comments) {
     var data = comments[i].data
     var title = data.title.toLowerCase()
     var selftext = data.selftext.toLowerCase()
     
+    var date = new Date(data.created_utc * 1000)
+    
+    if(!httplib.is_same_date(yesterday, date)) {
+      continue    
+    }
+
     var keywords = []
     
     for(var i2 in secret.interesting_keywords) {
