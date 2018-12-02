@@ -2,7 +2,7 @@ redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, se
 redditlib.check_init()
 
 // bot x 2, guide script
-updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header, secret.creds_atwikibot)
+updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header, secret.creds_atwikibot, secret.forbidden_words)
 updaterlib.check_init()
 
 
