@@ -2,7 +2,7 @@ redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, se
 redditlib.check_init()
 
 // bot x 2, guide script
-updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header, secret.creds_atwikibot, secret.forbidden_words)
+updaterlib.init_project(secret.doc_sr, secret.doc_filename, secret.doc_id, secret.doc_wiki, secret.page_header, secret.creds_wikibot, secret.forbidden_words)
 updaterlib.check_init()
 
 
@@ -118,7 +118,7 @@ function batch_voter_vote() {
 function batch_get_interesting_posts() {
   var objs = []
   
-  var comments = redditlib.get_comments(50)
+  var comments = redditlib.get_comments(redditlib.AVERAGE_DAILY_POSTS)
    
   var yesterday = new Date()
   yesterday.setDate(yesterday.getDate()-1)
