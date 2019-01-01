@@ -1,4 +1,4 @@
-redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, secret.creds_voters, secret.creds_atwikibot, secret.folder_id, secret.flair_mapping)
+redditlib.init_project(secret.subreddit, secret.secret_sr, secret.creds_main, secret.creds_voters, secret.creds_wikibot, secret.folder_id, secret.flair_mapping)
 redditlib.check_init()
 
 // bot x 2, guide script
@@ -115,6 +115,7 @@ function batch_voter_vote() {
 }
 
 // daily, trigged at mid-1am
+// reddit
 function batch_get_interesting_posts() {
   var objs = []
   
