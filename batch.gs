@@ -13,7 +13,7 @@ mlablib.check_init()
 function batch_month() {
   console.info("batch_month()")
   updaterlib.batch_update_doc_force()
-  redditlib.batch_set_arg_queue()
+  // redditlib.batch_set_arg_queue()
 }
 
 
@@ -177,9 +177,10 @@ function batch_get_interesting_posts() {
     mail_lines = mail_lines + Utilities.formatString("[%02d]%s ,%s ,%s\n\n", index, obj.keywords, link, obj.title)
   }
   
+  var mail = Session.getActiveUser().getEmail()
   if(objs.length > 0) {
-    var mail = Session.getActiveUser().getEmail()
-    
     MailApp.sendEmail(mail, mail_title, mail_lines)
+  } else if(objs.length == 0){
+    MailApp.sendEmail(mail, '[reddit] no posts!' , 'It\'s a good day!')
   }
 }
