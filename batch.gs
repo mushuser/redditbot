@@ -189,3 +189,13 @@ function batch_get_interesting_posts() {
     MailApp.sendEmail(mail, '[reddit] no posts!' , 'It\'s a good day!')
   }
 }
+
+
+function total_punish() {
+  redditlib.punish_users()
+}
+
+
+function single_punish() {
+  redditlib.punish_users(1)
+}
